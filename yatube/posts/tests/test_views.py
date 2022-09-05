@@ -190,12 +190,21 @@ class TestViews(TestCase):
             text='New post',
             author=TestViews.author,
         )
-        self.auth_client.get(reverse('posts:profile_follow', kwargs={'username': TestViews.author}))
+        self.auth_client.get(
+            reverse(
+                'posts:profile_follow',
+                kwargs={'username': TestViews.author}
+            )
+        )
         self.assertEqual(Follow.objects.count(), follow_count + 1)
         response = self.auth_client.get(reverse('posts:follow_index'))
         self.assertEqual(response.context['page_obj'][0], new_post)
 
-        self.auth_client.get(reverse('posts:profile_unfollow', kwargs={'username': TestViews.author}))
+        self.auth_client.get(reverse(
+            'posts:profile_unfollow',
+            kwargs={'username': TestViews.author}
+        )
+        )
         self.assertEqual(Follow.objects.count(), follow_count - 1)
         response = self.auth_client.get(reverse('posts:follow_index'))
         self.assertNotEqual(response.context['page_obj'], new_post)

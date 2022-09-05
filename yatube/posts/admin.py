@@ -1,12 +1,9 @@
 from django.contrib import admin
-from .models import Post, Group,Comment
-
-
-# Register your models here.
+from .models import Post, Group, Comment
 
 
 class PostAdmin(admin.ModelAdmin):
-    list_display = ('pk', 'text', 'created', 'author','image', 'group',)
+    list_display = ('pk', 'text', 'created', 'author', 'image', 'group',)
     list_editable = ('group',)
     search_fields = ('text',)
     list_filter = ('created',)

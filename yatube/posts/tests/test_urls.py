@@ -42,8 +42,7 @@ class StaticURLTests(TestCase):
 
         response = self.guest_client.get('unexisting_page/')
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
-        self.assertTemplateUsed(response,'core/404.html')
-
+        self.assertTemplateUsed(response, 'core/404.html')
 
     def test_post_gust_template(self):
         """Проврека страницы и соответсвующий шаблон"""
