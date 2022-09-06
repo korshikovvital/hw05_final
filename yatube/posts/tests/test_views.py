@@ -196,7 +196,7 @@ class TestViews(TestCase):
         self.assertEqual(Follow.objects.count(), follow_count)
         response = self.auth_client.get(reverse('posts:follow_index'))
         self.assertEqual(response.context['page_obj'][0], new_post)
-        assert TestViews.post.author == TestViews.follow.author
+
 
         self.auth_client.get(reverse(
             'posts:profile_unfollow',
