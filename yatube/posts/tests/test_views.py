@@ -193,7 +193,7 @@ class TestViews(TestCase):
                 kwargs={'username': TestViews.author}
             )
         )
-        self.assertEqual(Follow.objects.count(), follow_count + 1)
+        self.assertEqual(Follow.objects.count(), follow_count)
         response = self.auth_client.get(reverse('posts:follow_index'))
         self.assertEqual(response.context['page_obj'][0], new_post)
         assert TestViews.post.author == TestViews.follow.author
