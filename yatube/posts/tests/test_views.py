@@ -47,7 +47,7 @@ class TestViews(TestCase):
         post_new.delete()
         cache.clear()
         response = self.auth_client.get(reverse('posts:index'))
-        self.assertNotEqual(cache_content, response.content)
+        self.assertNotEqual(post_new.text, response.content)
 
     def test_vies_template(self):
         """URL-адрес использует соответствующий шаблон."""
