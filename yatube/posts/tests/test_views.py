@@ -39,8 +39,6 @@ class TestViews(TestCase):
             group=TestViews.group
         )
         response = self.auth_client.get(reverse('posts:index'))
-        cache_content = response.content
-
         first_post = response.context['page_obj'][0]
 
         self.assertEqual(first_post.text, post_new.text)
