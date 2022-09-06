@@ -12,3 +12,7 @@ def page_not_found(requests, exception):
 
 def csrf_failure(requests, reason=''):
     return render(requests, 'core/403csrf.html')
+
+
+def server_error(request):
+    return render(request, 'core/500.html')
