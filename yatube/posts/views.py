@@ -3,12 +3,12 @@ from .models import Group, Post, User, Comment, Follow
 from django.core.paginator import Paginator
 from .forms import PostForm, CommentForm
 from django.contrib.auth.decorators import login_required
+from yatube.settings import NUM_PAGE_PAGINATOR
 
-num_page_paginator = 10
 
 
 def paginator(request, posts):
-    paginator = Paginator(posts, num_page_paginator)
+    paginator = Paginator(posts, NUM_PAGE_PAGINATOR)
     page_number = request.GET.get('page')
     return paginator.get_page(page_number)
 
@@ -111,7 +111,9 @@ def add_comment(request, post_id):
 
 @login_required
 def follow_index(request):
-    posts = Post.objects.filter(author__following__user=request.user)
+    posts = Post.objects.select_related(
+        'group'
+    ).filter(author__following__user=request.user)
 
     context = {
         'posts': posts,

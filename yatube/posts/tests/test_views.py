@@ -1,11 +1,9 @@
 from django.test import TestCase, Client
 from django.urls import reverse
-from django.contrib.auth import get_user_model
-from ..models import Group, Post, Follow
+from ..models import Group, Post, Follow, User
 from django import forms
 from django.core.cache import cache
-
-User = get_user_model()
+from yatube.settings import NUM_PAGE_PAGINATOR
 
 
 class TestViews(TestCase):
@@ -30,6 +28,10 @@ class TestViews(TestCase):
             user=cls.author,
             author=cls.post.author
         )
+        cls.form_fields = {
+            'text': forms.fields.CharField,
+            'group': forms.fields.ChoiceField,
+        }
 
     def test_index_cache(self):
         """Тест кэширование главной страницы"""
@@ -39,13 +41,11 @@ class TestViews(TestCase):
             group=TestViews.group
         )
         response = self.auth_client.get(reverse('posts:index'))
-        first_post = response.context['page_obj'][0]
-
-        self.assertEqual(first_post.text, post_new.text)
+        old_response = response.content
         post_new.delete()
         cache.clear()
         response = self.auth_client.get(reverse('posts:index'))
-        self.assertNotEqual(post_new.text, response.content)
+        self.assertNotEqual(old_response, response.content)
 
     def test_vies_template(self):
         """URL-адрес использует соответствующий шаблон."""
@@ -76,22 +76,25 @@ class TestViews(TestCase):
                 response = self.auth_client.get(address)
                 self.assertTemplateUsed(response, template)
 
+    def check_post(self, first_post):
+        check_post_attr = {
+            first_post.text: TestViews.post.text,
+
+            first_post.author: TestViews.post.author,
+
+            first_post.group: TestViews.post.group,
+
+            first_post.image: TestViews.post.image}
+
+        for first_post_item, test_post in check_post_attr.items():
+            with self.subTest(post=first_post_item):
+                self.assertEqual(first_post_item, test_post)
+
     def test_post_index_page_correct_context(self):
         """Шаблон index  сформирован с правильным контекстом."""
         response = self.auth_client.get(reverse('posts:index'))
         first_post = response.context['page_obj'][0]
-        self.assertEqual(
-            first_post.text, TestViews.post.text
-        )
-        self.assertEqual(
-            first_post.author, TestViews.post.author
-        )
-        self.assertEqual(
-            first_post.group, TestViews.post.group
-        )
-        self.assertEqual(
-            first_post.image, TestViews.post.image
-        )
+        self.check_post(first_post)
 
     def test_post_group_list_page_correct_context(self):
         """Шаблон group_list  сформирован с правильным контекстом."""
@@ -99,14 +102,9 @@ class TestViews(TestCase):
             reverse('posts:group_list', kwargs={'slug': 'test-slug'})
         )
         first_group = response.context['group']
-        self.assertEqual(
-            first_group.title, TestViews.group.title
-        )
+
         self.assertEqual(
             first_group.slug, TestViews.group.slug
-        )
-        self.assertEqual(
-            first_group.description, TestViews.group.description
         )
 
         first_post = response.context['page_obj'][0]
@@ -121,17 +119,12 @@ class TestViews(TestCase):
             reverse('posts:profile', kwargs={'username': TestViews.author})
         )
         first_post = response.context['page_obj'][0]
+        self.check_post(first_post)
+        author = response.context['author']
+        self.assertIsInstance(author, User)
         self.assertEqual(
-            first_post.text, TestViews.post.text
-        )
-        self.assertEqual(
-            first_post.author, TestViews.post.author
-        )
-        self.assertEqual(
-            first_post.group, TestViews.post.group
-        )
-        self.assertEqual(
-            first_post.image, TestViews.post.image
+            author.username,
+            TestViews.post.author.username
         )
 
     def test_post_post_detail_page_correct_context(self):
@@ -153,11 +146,6 @@ class TestViews(TestCase):
             response.context.get('posts').image, TestViews.post.image
         )
 
-    form_fields = {
-        'text': forms.fields.CharField,
-        'group': forms.fields.ChoiceField,
-    }
-
     def test_post_post_create_page_correct_context(self):
         """Шаблон  post_create  сформирован с правильным контекстом."""
         response = self.auth_client.get(
@@ -178,10 +166,11 @@ class TestViews(TestCase):
             with self.subTest(value=value):
                 form_field = response.context.get('form').fields.get(value)
                 self.assertIsInstance(form_field, expected)
-
+        self.assertIn('is_edit', response.context)
         self.assertTrue(response.context['is_edit'])
 
     def test_follow_unfollow(self):
+        """Подписка на автора"""
         follow_count = Follow.objects.count()
         new_post = Post.objects.create(
             text='New post',
@@ -197,12 +186,21 @@ class TestViews(TestCase):
         response = self.auth_client.get(reverse('posts:follow_index'))
         self.assertEqual(response.context['page_obj'][0], new_post)
 
+    def test_unfollow(self):
+        """Отписка от автора"""
+        follow_count = Follow.objects.count()
         self.auth_client.get(reverse(
             'posts:profile_unfollow',
             kwargs={'username': TestViews.author}
         )
         )
         self.assertEqual(Follow.objects.count(), follow_count - 1)
+
+    def test_post_follow_index(self):
+        new_post = Post.objects.create(
+            text='New post',
+            author=TestViews.author,
+        )
         response = self.auth_client.get(reverse('posts:follow_index'))
         self.assertNotEqual(response.context['page_obj'], new_post)
 
@@ -212,6 +210,9 @@ class TestPaginatorViews(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        NUM_PAGE_MIN = 1
+        NUM_PAGE_MAX = 14
+        cls.NUM_PAGE_2_PAGINATOR = 3
 
         cls.group = Group.objects.create(
             title='Test group',
@@ -229,7 +230,7 @@ class TestPaginatorViews(TestCase):
                 author=TestPaginatorViews.author,
                 group=TestPaginatorViews.group,
             )
-            for post_num in range(1, 14)
+            for post_num in range(NUM_PAGE_MIN, NUM_PAGE_MAX)
         ]
 
         Post.objects.bulk_create(posts)
@@ -249,7 +250,7 @@ class TestPaginatorViews(TestCase):
         ]
         for url in url_name:
             response = self.auth_client.get(url)
-            self.assertEqual(len(response.context['page_obj']), 10)
+            self.assertEqual(len(response.context['page_obj']), NUM_PAGE_PAGINATOR)
 
     def test_second_page_contains_ten_records(self):
         """Проверка количества постов на второй странице"""
@@ -266,4 +267,7 @@ class TestPaginatorViews(TestCase):
         ]
         for url in url_name:
             response = self.auth_client.get(url + '?page=2')
-            self.assertEqual(len(response.context['page_obj']), 3)
+            self.assertEqual(
+                len(response.context['page_obj']),
+                self.NUM_PAGE_2_PAGINATOR
+            )

@@ -4,11 +4,9 @@ import tempfile
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, Client, override_settings
-from ..models import Post, Group, Comment
-from django.contrib.auth import get_user_model
+from ..models import Post, Group, Comment, User
 from django.urls import reverse
-
-User = get_user_model()
+from django.core.cache import cache
 
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
@@ -34,6 +32,7 @@ class PostCreateFormTest(TestCase):
         )
 
     def setUp(self) -> None:
+        cache.clear()
         self.guest_client = Client()
         self.small_gif = (
             b'\x47\x49\x46\x38\x39\x61\x02\x00'
@@ -66,86 +65,81 @@ class PostCreateFormTest(TestCase):
             'image': uploaded,
         }
 
-        response = PostCreateFormTest.auth_client.post(
+        PostCreateFormTest.auth_client.post(
             reverse('posts:post_create'),
             data=form_data,
             follow=True
 
         )
 
-        self.assertRedirects(
-            response, reverse(
-                'posts:profile', kwargs={'username': PostCreateFormTest.author}
-            )
-        )
-
         self.assertEqual(
             Post.objects.count(), post_count + 1
         )
-        post = Post.objects.first()
 
-        self.assertEqual(
-            post.author, self.author
-        )
-        self.assertEqual(
-            post.group, self.post.group
+        self.assertTrue(
+            Post.objects.filter(
+                text=form_data['text'],
+                group=form_data['group'],
+                image='posts/small.gif',
+            ).exists()
         )
 
     def test_post_edit(self):
         """При отправке валидной формы создается  post_edit"""
 
-        form_data = {
-            'text': 'test_title',
-            'group': PostCreateFormTest.group.id,
-            'image': self.small_gif
-        }
-
-        response = PostCreateFormTest.auth_client.post(
-            reverse(
-                'posts:post_edit', kwargs={
-                    'post_id': PostCreateFormTest.post.id
-                }
-            ),
-            data=form_data,
-            follow=True
-        )
-
-        self.assertRedirects(
-            response, reverse(
-                'posts:post_detail', kwargs={
-                    'post_id': PostCreateFormTest.post.id
-                }
-            )
-        )
-        self.assertTrue(
-            Post.objects.filter(
-                text='test_title',
-                group=PostCreateFormTest.group.id
-            ).exists()
-        )
+        # form_data = {
+        #     'text': 'test_title',
+        #     'group': PostCreateFormTest.group.id,
+        #     'image': self.small_gif
+        # }
+        #
+        # response = PostCreateFormTest.auth_client.post(
+        #     reverse(
+        #         'posts:post_edit', kwargs={
+        #             'post_id': PostCreateFormTest.post.id
+        #         }
+        #     ),
+        #     data=form_data,
+        #     follow=True
+        # )
+        #
+        # self.assertRedirects(
+        #     response, reverse(
+        #         'posts:post_detail', kwargs={
+        #             'post_id': PostCreateFormTest.post.id
+        #         }
+        #     )
+        # )
+        # self.assertTrue(
+        #     Post.objects.filter(
+        #         text='test_title',
+        #         group=PostCreateFormTest.group.id
+        #     ).exists()
+        # )
         new_post_text = 'new text'
         new_group = Group.objects.create(
             title='name_title2',
             slug='slug-test2',
             description='descrip_test2'
         )
+        form_data = {
+            'text': new_post_text,
+            'group': new_group.id,
+        }
 
         PostCreateFormTest.auth_client.post(
             reverse('posts:post_edit', args=(PostCreateFormTest.post.id,)),
-            data={
-                'text': new_post_text,
-                'group': new_group.id,
-            },
+            data=form_data,
             follow=True,
         )
         self.assertEqual(Post.objects.count(), 1)
 
-        post = Post.objects.first()
-
-        self.assertNotEqual(post.group.slug, 'slug-test')
-        self.assertEqual(post.author, self.post.author)
-        self.assertEqual(post.group, new_group)
-        self.assertEqual(post.text, new_post_text)
+        self.assertTrue(
+            Post.objects.filter(
+                text=form_data['text'],
+                group=form_data['group']
+            ).exists()
+        )
 
     def test_add_comment(self):
         """При отправке валидной формы создается add_comment,
@@ -174,3 +168,9 @@ class PostCreateFormTest(TestCase):
         )
 
         self.assertEqual(Comment.objects.count(), comment_count + 1)
+
+        self.assertTrue(
+            Comment.objects.filter(
+                text=form_data['text']
+            ).exists()
+        )

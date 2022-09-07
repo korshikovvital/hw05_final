@@ -1,10 +1,7 @@
 from django.test import TestCase, Client
-from django.contrib.auth import get_user_model
-from ..models import Group, Post
+from ..models import Group, Post, User
 from django.urls import reverse
 from http import HTTPStatus
-
-User = get_user_model()
 
 
 class StaticURLTests(TestCase):
@@ -21,6 +18,7 @@ class StaticURLTests(TestCase):
         cls.author = User.objects.create(username='korshikov')
         cls.auth_client = Client()
         cls.auth_client.force_login(cls.author)
+        cls.guest_client = Client()
 
         cls.post = Post.objects.create(
             text='Test post',
@@ -28,26 +26,17 @@ class StaticURLTests(TestCase):
             group=StaticURLTests.group
         )
 
-    def setUp(self) -> None:
-        self.guest_client = Client()
+        cls.template_auth_client = {
 
-    def test_get_home_page(self):
-        """Проверка доступности домашний страницы"""
-        response = self.guest_client.get('/')
-        self.assertEqual(response.status_code, HTTPStatus.OK)
+            reverse(
+                'posts:post_create'
+            ): 'posts/create_post.html',
+            reverse(
+                'posts:post_edit', kwargs={'post_id': StaticURLTests.post.id}
+            ): 'posts/create_post.html',
 
-    def test_check_404(self):
-        """Проврека к несуществующей странице 404
-        и нужного шаблона"""
-
-        response = self.guest_client.get('unexisting_page/')
-        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
-        self.assertTemplateUsed(response, 'core/404.html')
-
-    def test_post_gust_template(self):
-        """Проврека страницы и соответсвующий шаблон"""
-        """для неавторизир пользователей"""
-        template_name = {
+        }
+        cls.template_guest_client = {
             reverse(
                 'posts:index'
             ): 'posts/index.html',
@@ -61,7 +50,39 @@ class StaticURLTests(TestCase):
                 'posts:post_detail', kwargs={'post_id': StaticURLTests.post.id}
             ): 'posts/post_detail.html',
         }
-        for address, template in template_name.items():
+
+    def setUp(self) -> None:
+        self.guest_client = Client()
+
+    def test_get_status_page_auth_client(self):
+        """Проверка доступности страниц для авториз пользователей"""
+
+        for address in StaticURLTests.template_auth_client:
+            with self.subTest(address=address):
+                response = self.auth_client.get(address)
+                self.assertEqual(response.status_code, HTTPStatus.OK)
+
+    def test_get_status_page_guest_client(self):
+        """Проверка доступности страниц для неавториз пользователей"""
+
+        for address in self.template_guest_client:
+            with self.subTest(address=address):
+                response = self.auth_client.get(address)
+                self.assertEqual(response.status_code, HTTPStatus.OK)
+
+    def test_check_404(self):
+        """Проврека к несуществующей странице 404
+        и нужного шаблона"""
+
+        response = self.guest_client.get('unexisting_page/')
+        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
+        self.assertTemplateUsed(response, 'core/404.html')
+
+    def test_post_gust_template(self):
+        """Проврека страницы и соответсвующий шаблон"""
+        """для неавторизир пользователей"""
+
+        for address, template in self.template_guest_client.items():
             with self.subTest(address=address):
                 response = self.guest_client.get(address)
                 self.assertTemplateUsed(response, template)
@@ -69,17 +90,8 @@ class StaticURLTests(TestCase):
     def test_post_auth_template(self):
         """Проврека страницы и соответсвующий шаблон
          для авторизир пользователей"""
-        template_name = {
 
-            reverse(
-                'posts:post_create'
-            ): 'posts/create_post.html',
-            reverse(
-                'posts:post_edit', kwargs={'post_id': StaticURLTests.post.id}
-            ): 'posts/create_post.html',
-
-        }
-        for address, template in template_name.items():
+        for address, template in self.template_auth_client.items():
             with self.subTest(address=address):
                 response = self.auth_client.get(address)
                 self.assertTemplateUsed(response, template)
