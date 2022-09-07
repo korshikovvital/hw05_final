@@ -35,6 +35,8 @@ class TestViews(TestCase):
 
     def test_index_cache(self):
         """Тест кэширование главной страницы"""
+        response = self.auth_client.get(reverse('posts:index'))
+        posts = response.content
         post_new = Post.objects.create(
             text='cache_text',
             author=TestViews.author,
@@ -42,10 +44,12 @@ class TestViews(TestCase):
         )
         response = self.auth_client.get(reverse('posts:index'))
         old_response = response.content
+        self.assertEqual(old_response, posts)
         post_new.delete()
         cache.clear()
         response = self.auth_client.get(reverse('posts:index'))
-        self.assertNotEqual(old_response, response.content)
+        new_response = response.content
+        self.assertNotEqual(old_response, new_response)
 
     def test_vies_template(self):
         """URL-адрес использует соответствующий шаблон."""
