@@ -45,7 +45,6 @@ class TestViews(TestCase):
         response = self.auth_client.get(reverse('posts:index'))
         old_response = response.content
         self.assertEqual(old_response, posts)
-        post_new.delete()
         cache.clear()
         response = self.auth_client.get(reverse('posts:index'))
         new_response = response.content
