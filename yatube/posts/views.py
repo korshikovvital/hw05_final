@@ -6,7 +6,6 @@ from django.contrib.auth.decorators import login_required
 from yatube.settings import NUM_PAGE_PAGINATOR
 
 
-
 def paginator(request, posts):
     paginator = Paginator(posts, NUM_PAGE_PAGINATOR)
     page_number = request.GET.get('page')

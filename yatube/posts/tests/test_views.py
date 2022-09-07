@@ -250,7 +250,10 @@ class TestPaginatorViews(TestCase):
         ]
         for url in url_name:
             response = self.auth_client.get(url)
-            self.assertEqual(len(response.context['page_obj']), NUM_PAGE_PAGINATOR)
+            self.assertEqual(
+                len(response.context['page_obj']),
+                NUM_PAGE_PAGINATOR
+            )
 
     def test_second_page_contains_ten_records(self):
         """Проверка количества постов на второй странице"""
