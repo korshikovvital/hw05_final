@@ -37,7 +37,7 @@ class TestViews(TestCase):
         """Тест кэширование главной страницы"""
         response = self.auth_client.get(reverse('posts:index'))
         posts = response.content
-        post_new = Post.objects.create(
+        Post.objects.create(
             text='cache_text',
             author=TestViews.author,
             group=TestViews.group
