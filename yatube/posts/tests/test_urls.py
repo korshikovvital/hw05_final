@@ -70,6 +70,11 @@ class StaticURLTests(TestCase):
                 response = self.auth_client.get(address)
                 self.assertEqual(response.status_code, HTTPStatus.OK)
 
+        for address in self.template_auth_client:
+            with self.subTest(address=address):
+                response = self.auth_client.get(address)
+                self.assertEqual(response.status_code, HTTPStatus.OK)
+
     def test_check_404(self):
         """Проврека к несуществующей странице 404
         и нужного шаблона"""

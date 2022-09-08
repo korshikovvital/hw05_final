@@ -43,12 +43,12 @@ class TestViews(TestCase):
             group=TestViews.group
         )
         response = self.auth_client.get(reverse('posts:index'))
-        old_response = response.content
-        self.assertEqual(old_response, posts)
+        post_new_response = response.content
+        self.assertEqual(post_new_response, posts)
         cache.clear()
         response = self.auth_client.get(reverse('posts:index'))
         new_response = response.content
-        self.assertNotEqual(old_response, new_response)
+        self.assertNotEqual(post_new_response, new_response)
 
     def test_vies_template(self):
         """URL-адрес использует соответствующий шаблон."""
@@ -112,9 +112,7 @@ class TestViews(TestCase):
 
         first_post = response.context['page_obj'][0]
 
-        self.assertEqual(
-            first_post.image, TestViews.post.image
-        )
+        self.check_post(first_post)
 
     def test_post_profile_page_correct_context(self):
         """Шаблон profile  сформирован с правильным контекстом."""
@@ -136,17 +134,19 @@ class TestViews(TestCase):
             reverse('posts:post_detail', kwargs={'post_id': TestViews.post.id})
         )
 
+        post=response.context.get('posts')
+
         self.assertEqual(
-            response.context.get('posts').text, TestViews.post.text
+            post.text, TestViews.post.text
         )
         self.assertEqual(
-            response.context.get('posts').author, TestViews.post.author
+            post.author, TestViews.post.author
         )
         self.assertEqual(
-            response.context.get('posts').group, TestViews.post.group
+            post.group, TestViews.post.group
         )
         self.assertEqual(
-            response.context.get('posts').image, TestViews.post.image
+            post.image, TestViews.post.image
         )
 
     def test_post_post_create_page_correct_context(self):
@@ -172,7 +172,7 @@ class TestViews(TestCase):
         self.assertIn('is_edit', response.context)
         self.assertTrue(response.context['is_edit'])
 
-    def test_follow_unfollow(self):
+    def test_follow(self):
         """Подписка на автора"""
         follow_count = Follow.objects.count()
         new_post = Post.objects.create(
@@ -186,8 +186,9 @@ class TestViews(TestCase):
             )
         )
         self.assertEqual(Follow.objects.count(), follow_count)
-        response = self.auth_client.get(reverse('posts:follow_index'))
-        self.assertEqual(response.context['page_obj'][0], new_post)
+        follow=Follow.objects.first()
+        self.assertEqual(follow.author,new_post.author)
+
 
     def test_unfollow(self):
         """Отписка от автора"""

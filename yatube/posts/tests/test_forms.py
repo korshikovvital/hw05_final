@@ -25,11 +25,11 @@ class PostCreateFormTest(TestCase):
         cls.auth_client = Client()
         cls.auth_client.force_login(cls.author)
 
-        cls.post = Post.objects.create(
-            text='text_test',
-            author=PostCreateFormTest.author,
-            group=PostCreateFormTest.group
-        )
+        # cls.post = Post.objects.create(
+        #     text='text_test',
+        #     author=PostCreateFormTest.author,
+        #     group=PostCreateFormTest.group
+        # )
 
     def setUp(self) -> None:
         cache.clear()
@@ -76,46 +76,18 @@ class PostCreateFormTest(TestCase):
             Post.objects.count(), post_count + 1
         )
 
-        self.assertTrue(
-            Post.objects.filter(
-                text=form_data['text'],
-                group=form_data['group'],
-                image='posts/small.gif',
-            ).exists()
-        )
+        post=Post.objects.first()
+
+        self.assertEqual(post.text,form_data['text'])
+        self.assertEqual(post.group.id,form_data['group'])
+        self.assertEqual(post.image,'posts/small.gif')
 
     def test_post_edit(self):
         """При отправке валидной формы создается  post_edit"""
+        post = Post.objects.create(
+            text='Текст поста для редактирования',
+            author=self.author)
 
-        # form_data = {
-        #     'text': 'test_title',
-        #     'group': PostCreateFormTest.group.id,
-        #     'image': self.small_gif
-        # }
-        #
-        # response = PostCreateFormTest.auth_client.post(
-        #     reverse(
-        #         'posts:post_edit', kwargs={
-        #             'post_id': PostCreateFormTest.post.id
-        #         }
-        #     ),
-        #     data=form_data,
-        #     follow=True
-        # )
-        #
-        # self.assertRedirects(
-        #     response, reverse(
-        #         'posts:post_detail', kwargs={
-        #             'post_id': PostCreateFormTest.post.id
-        #         }
-        #     )
-        # )
-        # self.assertTrue(
-        #     Post.objects.filter(
-        #         text='test_title',
-        #         group=PostCreateFormTest.group.id
-        #     ).exists()
-        # )
         new_post_text = 'new text'
         new_group = Group.objects.create(
             title='name_title2',
@@ -128,22 +100,26 @@ class PostCreateFormTest(TestCase):
         }
 
         PostCreateFormTest.auth_client.post(
-            reverse('posts:post_edit', args=(PostCreateFormTest.post.id,)),
+            reverse('posts:post_edit', kwargs={
+                'post_id': post.id
+            }),
             data=form_data,
             follow=True,
         )
         self.assertEqual(Post.objects.count(), 1)
 
-        self.assertTrue(
-            Post.objects.filter(
-                text=form_data['text'],
-                group=form_data['group']
-            ).exists()
-        )
+        post=Post.objects.first()
+
+        self.assertEqual(post.text,form_data['text'])
+        self.assertEqual(post.group.id,form_data['group'])
 
     def test_add_comment(self):
         """При отправке валидной формы создается add_comment,
         для авториз рользователей"""
+
+        post = Post.objects.create(
+            text='Текст поста для редактирования',
+            author=self.author)
 
         form_data = {
             'text': 'text_test',
@@ -153,7 +129,7 @@ class PostCreateFormTest(TestCase):
         response = PostCreateFormTest.auth_client.post(
             reverse(
                 'posts:add_comment', kwargs={
-                    'post_id': PostCreateFormTest.post.id
+                    'post_id': post.id
                 }),
             data=form_data,
             follow=True
@@ -162,7 +138,7 @@ class PostCreateFormTest(TestCase):
         self.assertRedirects(
             response, reverse(
                 'posts:post_detail', kwargs={
-                    'post_id': PostCreateFormTest.post.id
+                    'post_id': post.id
                 }
             )
         )
