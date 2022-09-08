@@ -76,11 +76,11 @@ class PostCreateFormTest(TestCase):
             Post.objects.count(), post_count + 1
         )
 
-        post=Post.objects.first()
+        post = Post.objects.first()
 
-        self.assertEqual(post.text,form_data['text'])
-        self.assertEqual(post.group.id,form_data['group'])
-        self.assertEqual(post.image,'posts/small.gif')
+        self.assertEqual(post.text, form_data['text'])
+        self.assertEqual(post.group.id, form_data['group'])
+        self.assertEqual(post.image, 'posts/small.gif')
 
     def test_post_edit(self):
         """При отправке валидной формы создается  post_edit"""
@@ -108,10 +108,10 @@ class PostCreateFormTest(TestCase):
         )
         self.assertEqual(Post.objects.count(), 1)
 
-        post=Post.objects.first()
+        post = Post.objects.first()
 
-        self.assertEqual(post.text,form_data['text'])
-        self.assertEqual(post.group.id,form_data['group'])
+        self.assertEqual(post.text, form_data['text'])
+        self.assertEqual(post.group.id, form_data['group'])
 
     def test_add_comment(self):
         """При отправке валидной формы создается add_comment,

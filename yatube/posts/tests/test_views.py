@@ -134,7 +134,7 @@ class TestViews(TestCase):
             reverse('posts:post_detail', kwargs={'post_id': TestViews.post.id})
         )
 
-        post=response.context.get('posts')
+        post = response.context.get('posts')
 
         self.assertEqual(
             post.text, TestViews.post.text
@@ -186,9 +186,8 @@ class TestViews(TestCase):
             )
         )
         self.assertEqual(Follow.objects.count(), follow_count)
-        follow=Follow.objects.first()
-        self.assertEqual(follow.author,new_post.author)
-
+        follow = Follow.objects.first()
+        self.assertEqual(follow.author, new_post.author)
 
     def test_unfollow(self):
         """Отписка от автора"""
