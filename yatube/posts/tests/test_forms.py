@@ -25,12 +25,6 @@ class PostCreateFormTest(TestCase):
         cls.auth_client = Client()
         cls.auth_client.force_login(cls.author)
 
-        # cls.post = Post.objects.create(
-        #     text='text_test',
-        #     author=PostCreateFormTest.author,
-        #     group=PostCreateFormTest.group
-        # )
-
     def setUp(self) -> None:
         cache.clear()
         self.guest_client = Client()

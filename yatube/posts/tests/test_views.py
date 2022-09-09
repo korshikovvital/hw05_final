@@ -186,7 +186,7 @@ class TestViews(TestCase):
             )
         )
         self.assertEqual(Follow.objects.count(), follow_count)
-        follow = Follow.objects.first()
+        follow = Follow.objects.latest('id')
         self.assertEqual(follow.author, new_post.author)
 
     def test_unfollow(self):

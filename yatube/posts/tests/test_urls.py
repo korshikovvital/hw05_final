@@ -34,7 +34,9 @@ class StaticURLTests(TestCase):
             reverse(
                 'posts:post_edit', kwargs={'post_id': StaticURLTests.post.id}
             ): 'posts/create_post.html',
-
+            reverse(
+                'posts:follow_index'
+            ): 'posts/follow.html',
         }
         cls.template_guest_client = {
             reverse(
@@ -54,10 +56,27 @@ class StaticURLTests(TestCase):
     def setUp(self) -> None:
         self.guest_client = Client()
 
+    def test_get_status_follow_and_unfollow_page(self):
+        page_list = [
+            reverse(
+                'posts:profile_follow', kwargs={'username': StaticURLTests.author}
+            ),
+            reverse('posts:profile_unfollow', kwargs={'username': StaticURLTests.author})
+        ]
+        for address in page_list:
+            with self.subTest(address=address):
+                response = self.auth_client.get(address)
+                self.assertEqual(response.status_code, HTTPStatus.FOUND)
+
     def test_get_status_page_auth_client(self):
         """Проверка доступности страниц для авториз пользователей"""
 
         for address in StaticURLTests.template_auth_client:
+            with self.subTest(address=address):
+                response = self.auth_client.get(address)
+                self.assertEqual(response.status_code, HTTPStatus.OK)
+
+        for address in StaticURLTests.template_guest_client:
             with self.subTest(address=address):
                 response = self.auth_client.get(address)
                 self.assertEqual(response.status_code, HTTPStatus.OK)
@@ -67,12 +86,7 @@ class StaticURLTests(TestCase):
 
         for address in self.template_guest_client:
             with self.subTest(address=address):
-                response = self.auth_client.get(address)
-                self.assertEqual(response.status_code, HTTPStatus.OK)
-
-        for address in self.template_auth_client:
-            with self.subTest(address=address):
-                response = self.auth_client.get(address)
+                response = self.guest_client.get(address)
                 self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_check_404(self):
@@ -83,20 +97,20 @@ class StaticURLTests(TestCase):
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
         self.assertTemplateUsed(response, 'core/404.html')
 
-    def test_post_gust_template(self):
-        """Проврека страницы и соответсвующий шаблон"""
-        """для неавторизир пользователей"""
-
-        for address, template in self.template_guest_client.items():
-            with self.subTest(address=address):
-                response = self.guest_client.get(address)
-                self.assertTemplateUsed(response, template)
-
-    def test_post_auth_template(self):
-        """Проврека страницы и соответсвующий шаблон
-         для авторизир пользователей"""
-
-        for address, template in self.template_auth_client.items():
-            with self.subTest(address=address):
-                response = self.auth_client.get(address)
-                self.assertTemplateUsed(response, template)
+    # def test_post_gust_template(self):
+    #     """Проврека страницы и соответсвующий шаблон"""
+    #     """для неавторизир пользователей"""
+    #
+    #     for address, template in self.template_guest_client.items():
+    #         with self.subTest(address=address):
+    #             response = self.guest_client.get(address)
+    #             self.assertTemplateUsed(response, template)
+    #
+    # def test_post_auth_template(self):
+    #     """Проврека страницы и соответсвующий шаблон
+    #      для авторизир пользователей"""
+    #
+    #     for address, template in self.template_auth_client.items():
+    #         with self.subTest(address=address):
+    #             response = self.auth_client.get(address)
+    #             self.assertTemplateUsed(response, template)
