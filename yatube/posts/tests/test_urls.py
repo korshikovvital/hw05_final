@@ -59,9 +59,13 @@ class StaticURLTests(TestCase):
     def test_get_status_follow_and_unfollow_page(self):
         page_list = [
             reverse(
-                'posts:profile_follow', kwargs={'username': StaticURLTests.author}
+                'posts:profile_follow',
+                kwargs={'username': StaticURLTests.author}
             ),
-            reverse('posts:profile_unfollow', kwargs={'username': StaticURLTests.author})
+            reverse(
+                'posts:profile_unfollow',
+                kwargs={'username': StaticURLTests.author}
+            )
         ]
         for address in page_list:
             with self.subTest(address=address):
